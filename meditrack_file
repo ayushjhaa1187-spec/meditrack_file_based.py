@@ -1,7 +1,5 @@
 """
 MediTrack - Hospital Management System (File-Based Version)
-Class 12 Computer Science Project
-Technology: Python (File Handling, Functions, Lists, Loops)
 
 Storage:
 - patients.csv
