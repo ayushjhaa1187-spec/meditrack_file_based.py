@@ -1,0 +1,676 @@
+"""
+MediTrack - Hospital Management System (File-Based Version)
+Class 12 Computer Science Project
+Technology: Python (File Handling, Functions, Lists, Loops)
+
+Storage:
+- patients.csv
+- doctors.csv
+- appointments.csv
+- bills.csv
+"""
+
+import os
+from datetime import date
+
+# ================== HELPER FUNCTIONS FOR FILE HANDLING ==================
+
+def ensure_file_exists(filename, header_line):
+    """Create file with header if it does not exist."""
+    if not os.path.exists(filename):
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(header_line + "\n")
+
+def read_csv(filename):
+    """Read CSV file and return list of dicts."""
+    records = []
+    if not os.path.exists(filename):
+        return records
+    with open(filename, "r", encoding="utf-8") as f:
+        lines = f.read().strip().split("\n")
+        if len(lines) <= 1:
+            return []
+        header = lines[0].split(",")
+        for line in lines[1:]:
+            if not line.strip():
+                continue
+            values = line.split(",")
+            record = {}
+            for i in range(len(header)):
+                record[header[i]] = values[i]
+            records.append(record)
+    return records
+
+def write_csv(filename, header, records):
+    """Write list of dicts to CSV file."""
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(",".join(header) + "\n")
+        for r in records:
+            row = [str(r.get(col, "")) for col in header]
+            f.write(",".join(row) + "\n")
+
+# Initialize files with headers
+ensure_file_exists(
+    "patients.csv",
+    "p_id,name,age,gender,phone,address,disease,registration_date"
+)
+ensure_file_exists(
+    "doctors.csv",
+    "d_id,name,specialization,fees,availability"
+)
+ensure_file_exists(
+    "appointments.csv",
+    "a_id,p_id,d_id,app_date,app_time,status"
+)
+ensure_file_exists(
+    "bills.csv",
+    "bill_id,p_id,total_amount,bill_date"
+)
+
+# ================== PATIENT MODULE ==================
+
+def add_patient():
+    try:
+        print("\n" + "="*50)
+        print("➕ ADD NEW PATIENT")
+        print("="*50)
+
+        p_id = input("Enter Patient ID (unique integer): ").strip()
+        name = input("Enter Full Name: ").strip()
+        age = input("Enter Age: ").strip()
+        gender = input("Enter Gender (M/F/O): ").strip().upper()
+        phone = input("Enter Phone Number: ").strip()
+        address = input("Enter Address: ").strip()
+        disease = input("Enter Disease/Complaint: ").strip()
+        reg_date = date.today().isoformat()
+
+        patients = read_csv("patients.csv")
+
+        # Check duplicate ID
+        for p in patients:
+            if p["p_id"] == p_id:
+                print("❌ Error: Patient ID already exists!")
+                return
+
+        new_patient = {
+            "p_id": p_id,
+            "name": name,
+            "age": age,
+            "gender": gender,
+            "phone": phone,
+            "address": address,
+            "disease": disease,
+            "registration_date": reg_date
+        }
+        patients.append(new_patient)
+
+        header = [
+            "p_id", "name", "age", "gender",
+            "phone", "address", "disease", "registration_date"
+        ]
+        write_csv("patients.csv", header, patients)
+        print(f"✅ Patient ID {p_id} added successfully.")
+
+    except Exception as e:
+        print("❌ Error while adding patient:", e)
+
+def view_all_patients():
+    try:
+        patients = read_csv("patients.csv")
+        print("\n" + "="*90)
+        print("📋 ALL PATIENT RECORDS")
+        print("="*90)
+
+        if not patients:
+            print("ℹ️  No patient records found.")
+            return
+
+        print(f"{'ID':<5} {'Name':<20} {'Age':<5} {'G':<3} {'Phone':<15} {'Disease':<25}")
+        print("-"*90)
+        for p in patients:
+            print(f"{p['p_id']:<5} {p['name']:<20} {p['age']:<5} {p['gender']:<3} {p['phone']:<15} {p['disease']:<25}")
+
+    except Exception as e:
+        print("❌ Error while viewing patients:", e)
+
+def search_patient():
+    try:
+        print("\n" + "="*50)
+        print("🔍 SEARCH PATIENT BY ID")
+        print("="*50)
+
+        p_id = input("Enter Patient ID to search: ").strip()
+        patients = read_csv("patients.csv")
+
+        for p in patients:
+            if p["p_id"] == p_id:
+                print("\n✅ Patient Found:")
+                print("Patient ID       :", p["p_id"])
+                print("Name             :", p["name"])
+                print("Age              :", p["age"])
+                print("Gender           :", p["gender"])
+                print("Phone            :", p["phone"])
+                print("Address          :", p["address"])
+                print("Disease/Complaint:", p["disease"])
+                print("Registration Date:", p["registration_date"])
+                return
+
+        print("❌ No patient found with this ID.")
+
+    except Exception as e:
+        print("❌ Error while searching patient:", e)
+
+def update_patient():
+    try:
+        print("\n" + "="*50)
+        print("✏️  UPDATE PATIENT RECORD")
+        print("="*50)
+
+        p_id = input("Enter Patient ID to update: ").strip()
+        patients = read_csv("patients.csv")
+        found = False
+
+        for p in patients:
+            if p["p_id"] == p_id:
+                found = True
+                print(f"\nCurrent Details for {p['name']}:")
+                print(f"  Name: {p['name']}, Age: {p['age']}, Phone: {p['phone']}, Disease: {p['disease']}")
+                print("\n(Leave blank to keep current value)")
+
+                name = input(f"New Name ({p['name']}): ").strip() or p["name"]
+                age = input(f"New Age ({p['age']}): ").strip() or p["age"]
+                phone = input(f"New Phone ({p['phone']}): ").strip() or p["phone"]
+                disease = input(f"New Disease ({p['disease']}): ").strip() or p["disease"]
+
+                p["name"] = name
+                p["age"] = age
+                p["phone"] = phone
+                p["disease"] = disease
+                break
+
+        if not found:
+            print("❌ No patient found with this ID.")
+            return
+
+        header = [
+            "p_id", "name", "age", "gender",
+            "phone", "address", "disease", "registration_date"
+        ]
+        write_csv("patients.csv", header, patients)
+        print(f"✅ Patient ID {p_id} updated successfully.")
+
+    except Exception as e:
+        print("❌ Error while updating patient:", e)
+
+def delete_patient():
+    try:
+        print("\n" + "="*50)
+        print("🗑️  DELETE PATIENT RECORD")
+        print("="*50)
+
+        p_id = input("Enter Patient ID to delete: ").strip()
+        patients = read_csv("patients.csv")
+        new_list = []
+        deleted = False
+        deleted_patient = None
+
+        for p in patients:
+            if p["p_id"] == p_id:
+                deleted = True
+                deleted_patient = p
+            else:
+                new_list.append(p)
+
+        if not deleted:
+            print("❌ No patient found with this ID.")
+            return
+
+        print(f"\n⚠️  Patient Details: {deleted_patient['name']}, Age: {deleted_patient['age']}, Phone: {deleted_patient['phone']}")
+        ch = input("Are you sure you want to delete this record? (YES/NO): ").strip().upper()
+        if ch == "YES":
+            header = [
+                "p_id", "name", "age", "gender",
+                "phone", "address", "disease", "registration_date"
+            ]
+            write_csv("patients.csv", header, new_list)
+            print(f"✅ Patient ID {p_id} deleted successfully.")
+        else:
+            print("❌ Deletion cancelled.")
+
+    except Exception as e:
+        print("❌ Error while deleting patient:", e)
+
+# ================== DOCTOR MODULE ==================
+
+def add_doctor():
+    try:
+        print("\n" + "="*50)
+        print("➕ ADD NEW DOCTOR")
+        print("="*50)
+
+        d_id = input("Enter Doctor ID (unique integer): ").strip()
+        name = input("Enter Doctor Name: ").strip()
+        specialization = input("Enter Specialization: ").strip()
+        fees = input("Enter Consultation Fees: ").strip()
+        availability = input("Enter Availability (e.g., Mon-Fri 9AM-5PM): ").strip()
+
+        doctors = read_csv("doctors.csv")
+
+        for d in doctors:
+            if d["d_id"] == d_id:
+                print("❌ Error: Doctor ID already exists!")
+                return
+
+        new_doctor = {
+            "d_id": d_id,
+            "name": name,
+            "specialization": specialization,
+            "fees": fees,
+            "availability": availability
+        }
+        doctors.append(new_doctor)
+
+        header = ["d_id", "name", "specialization", "fees", "availability"]
+        write_csv("doctors.csv", header, doctors)
+        print(f"✅ Doctor ID {d_id} added successfully.")
+
+    except Exception as e:
+        print("❌ Error while adding doctor:", e)
+
+def view_all_doctors():
+    try:
+        doctors = read_csv("doctors.csv")
+        print("\n" + "="*90)
+        print("👨‍⚕️  ALL DOCTOR RECORDS")
+        print("="*90)
+
+        if not doctors:
+            print("ℹ️  No doctor records found.")
+            return
+
+        print(f"{'ID':<5} {'Name':<20} {'Specialization':<20} {'Fees':<8} {'Availability':<30}")
+        print("-"*90)
+        for d in doctors:
+            print(f"{d['d_id']:<5} {d['name']:<20} {d['specialization']:<20} ₹{d['fees']:<7} {d['availability']:<30}")
+
+    except Exception as e:
+        print("❌ Error while viewing doctors:", e)
+
+# ================== APPOINTMENT MODULE ==================
+
+def book_appointment():
+    try:
+        print("\n" + "="*50)
+        print("📅 BOOK NEW APPOINTMENT")
+        print("="*50)
+
+        a_id = input("Enter Appointment ID (unique integer): ").strip()
+        p_id = input("Enter Patient ID: ").strip()
+        d_id = input("Enter Doctor ID: ").strip()
+        app_date = input("Enter Appointment Date (YYYY-MM-DD): ").strip()
+        app_time = input("Enter Appointment Time (e.g., 10:30AM): ").strip()
+
+        appointments = read_csv("appointments.csv")
+        patients = read_csv("patients.csv")
+        doctors = read_csv("doctors.csv")
+
+        # Check duplicate appointment ID
+        for a in appointments:
+            if a["a_id"] == a_id:
+                print("❌ Error: Appointment ID already exists!")
+                return
+
+        # Check patient exists
+        patient_name = None
+        for p in patients:
+            if p["p_id"] == p_id:
+                patient_name = p["name"]
+                break
+        if not patient_name:
+            print("❌ Invalid Patient ID. Please add patient first.")
+            return
+
+        # Check doctor exists
+        doctor_name = None
+        for d in doctors:
+            if d["d_id"] == d_id:
+                doctor_name = d["name"]
+                break
+        if not doctor_name:
+            print("❌ Invalid Doctor ID. Please add doctor first.")
+            return
+
+        new_app = {
+            "a_id": a_id,
+            "p_id": p_id,
+            "d_id": d_id,
+            "app_date": app_date,
+            "app_time": app_time,
+            "status": "Booked"
+        }
+        appointments.append(new_app)
+        header = ["a_id", "p_id", "d_id", "app_date", "app_time", "status"]
+        write_csv("appointments.csv", header, appointments)
+
+        print(f"\n✅ Appointment ID {a_id} booked successfully!")
+        print(f"   Patient: {patient_name}, Doctor: {doctor_name}")
+        print(f"   Date: {app_date}, Time: {app_time}")
+
+    except Exception as e:
+        print("❌ Error while booking appointment:", e)
+
+def view_appointments():
+    try:
+        appointments = read_csv("appointments.csv")
+        patients = read_csv("patients.csv")
+        doctors = read_csv("doctors.csv")
+
+        print("\n" + "="*110)
+        print("📋 ALL APPOINTMENTS")
+        print("="*110)
+
+        if not appointments:
+            print("ℹ️  No appointments found.")
+            return
+
+        print(f"{'ID':<5} {'Patient Name':<20} {'Doctor Name':<20} {'Specialization':<20} {'Date':<12} {'Time':<10} {'Status':<10}")
+        print("-"*110)
+
+        for a in appointments:
+            patient_name = "-"
+            doctor_name = "-"
+            specialization = "-"
+            for p in patients:
+                if p["p_id"] == a["p_id"]:
+                    patient_name = p["name"]
+                    break
+            for d in doctors:
+                if d["d_id"] == a["d_id"]:
+                    doctor_name = d["name"]
+                    specialization = d["specialization"]
+                    break
+
+            print(f"{a['a_id']:<5} {patient_name:<20} {doctor_name:<20} {specialization:<20} {a['app_date']:<12} {a['app_time']:<10} {a['status']:<10}")
+
+    except Exception as e:
+        print("❌ Error while viewing appointments:", e)
+
+def cancel_appointment():
+    try:
+        print("\n" + "="*50)
+        print("❌ CANCEL APPOINTMENT")
+        print("="*50)
+
+        a_id = input("Enter Appointment ID to cancel: ").strip()
+        appointments = read_csv("appointments.csv")
+        found = False
+
+        for a in appointments:
+            if a["a_id"] == a_id:
+                found = True
+                if a["status"] == "Cancelled":
+                    print("❌ Appointment is already cancelled.")
+                    break
+                a["status"] = "Cancelled"
+                break
+
+        if not found:
+            print("❌ No appointment found with this ID.")
+            return
+
+        header = ["a_id", "p_id", "d_id", "app_date", "app_time", "status"]
+        write_csv("appointments.csv", header, appointments)
+        print(f"✅ Appointment ID {a_id} cancelled successfully.")
+
+    except Exception as e:
+        print("❌ Error while cancelling appointment:", e)
+
+# ================== BILLING MODULE ==================
+
+def generate_bill():
+    try:
+        print("\n" + "="*50)
+        print("💰 GENERATE BILL")
+        print("="*50)
+
+        bill_id = input("Enter Bill ID (unique integer): ").strip()
+        p_id = input("Enter Patient ID: ").strip()
+
+        bills = read_csv("bills.csv")
+        patients = read_csv("patients.csv")
+        appointments = read_csv("appointments.csv")
+        doctors = read_csv("doctors.csv")
+
+        # Check duplicate bill
+        for b in bills:
+            if b["bill_id"] == bill_id:
+                print("❌ Error: Bill ID already exists!")
+                return
+
+        # Find patient
+        patient_name = None
+        for p in patients:
+            if p["p_id"] == p_id:
+                patient_name = p["name"]
+                break
+        if not patient_name:
+            print("❌ Invalid Patient ID.")
+            return
+
+        # Find last appointment's doctor fees (if any)
+        last_app = None
+        for a in appointments:
+            if a["p_id"] == p_id:
+                if last_app is None or a["app_date"] > last_app["app_date"]:
+                    last_app = a
+
+        doctor_fees = 0
+        if last_app:
+            for d in doctors:
+                if d["d_id"] == last_app["d_id"]:
+                    doctor_fees = int(d["fees"])
+                    break
+        else:
+            fees_in = input("No appointment found. Enter doctor fees manually: ").strip()
+            doctor_fees = int(fees_in) if fees_in else 0
+
+        days_in = input("Enter Days of Admission (0 for OPD): ").strip()
+        days_admitted = int(days_in) if days_in else 0
+        admission_charges = days_admitted * 1500
+
+        test_charges_in = input("Enter Test Charges (₹): ").strip()
+        test_charges = int(test_charges_in) if test_charges_in else 0
+
+        total_amount = doctor_fees + admission_charges + test_charges
+        bill_date = date.today().isoformat()
+
+        new_bill = {
+            "bill_id": bill_id,
+            "p_id": p_id,
+            "total_amount": str(total_amount),
+            "bill_date": bill_date
+        }
+        bills.append(new_bill)
+        header = ["bill_id", "p_id", "total_amount", "bill_date"]
+        write_csv("bills.csv", header, bills)
+
+        print("\n" + "="*50)
+        print("📄 BILL GENERATED SUCCESSFULLY")
+        print("="*50)
+        print("Bill ID                  :", bill_id)
+        print("Patient ID               :", p_id)
+        print("Patient Name             :", patient_name)
+        print("Consultation Fees        : ₹", doctor_fees)
+        print("Admission Days           :", days_admitted)
+        print("Admission Charges (₹1500/day) : ₹", admission_charges)
+        print("Test Charges             : ₹", test_charges)
+        print("-"*50)
+        print("TOTAL AMOUNT             : ₹", total_amount)
+        print("Bill Date                :", bill_date)
+        print("="*50)
+
+    except Exception as e:
+        print("❌ Error while generating bill:", e)
+
+def view_bills():
+    try:
+        bills = read_csv("bills.csv")
+        patients = read_csv("patients.csv")
+
+        print("\n" + "="*80)
+        print("💳 ALL BILLS")
+        print("="*80)
+
+        if not bills:
+            print("ℹ️  No bills found.")
+            return
+
+        print(f"{'Bill ID':<10} {'Patient Name':<25} {'Amount':<15} {'Date':<15}")
+        print("-"*80)
+
+        total_revenue = 0
+        for b in bills:
+            patient_name = "-"
+            for p in patients:
+                if p["p_id"] == b["p_id"]:
+                    patient_name = p["name"]
+                    break
+            amount = int(b["total_amount"])
+            total_revenue += amount
+            print(f"{b['bill_id']:<10} {patient_name:<25} ₹{amount:<14} {b['bill_date']:<15}")
+
+        print("-"*80)
+        print(f"{'TOTAL REVENUE':<35} ₹{total_revenue}")
+
+    except Exception as e:
+        print("❌ Error while viewing bills:", e)
+
+# ================== MENUS ==================
+
+def patient_menu():
+    while True:
+        print("\n" + "="*50)
+        print("👤 PATIENT MODULE")
+        print("="*50)
+        print("1. Add New Patient")
+        print("2. View All Patients")
+        print("3. Search Patient by ID")
+        print("4. Update Patient Record")
+        print("5. Delete Patient Record")
+        print("6. Back to Main Menu")
+        print("="*50)
+
+        ch = input("Enter your choice (1-6): ").strip()
+        if ch == '1':
+            add_patient()
+        elif ch == '2':
+            view_all_patients()
+        elif ch == '3':
+            search_patient()
+        elif ch == '4':
+            update_patient()
+        elif ch == '5':
+            delete_patient()
+        elif ch == '6':
+            break
+        else:
+            print("❌ Invalid choice! Please enter 1-6.")
+
+def doctor_menu():
+    while True:
+        print("\n" + "="*50)
+        print("👨‍⚕️  DOCTOR MODULE")
+        print("="*50)
+        print("1. Add New Doctor")
+        print("2. View All Doctors")
+        print("3. Back to Main Menu")
+        print("="*50)
+
+        ch = input("Enter your choice (1-3): ").strip()
+        if ch == '1':
+            add_doctor()
+        elif ch == '2':
+            view_all_doctors()
+        elif ch == '3':
+            break
+        else:
+            print("❌ Invalid choice! Please enter 1-3.")
+
+def appointment_menu():
+    while True:
+        print("\n" + "="*50)
+        print("📅 APPOINTMENT MODULE")
+        print("="*50)
+        print("1. Book Appointment")
+        print("2. View All Appointments")
+        print("3. Cancel Appointment")
+        print("4. Back to Main Menu")
+        print("="*50)
+
+        ch = input("Enter your choice (1-4): ").strip()
+        if ch == '1':
+            book_appointment()
+        elif ch == '2':
+            view_appointments()
+        elif ch == '3':
+            cancel_appointment()
+        elif ch == '4':
+            break
+        else:
+            print("❌ Invalid choice! Please enter 1-4.")
+
+def billing_menu():
+    while True:
+        print("\n" + "="*50)
+        print("💰 BILLING MODULE")
+        print("="*50)
+        print("1. Generate Bill")
+        print("2. View All Bills")
+        print("3. Back to Main Menu")
+        print("="*50)
+
+        ch = input("Enter your choice (1-3): ").strip()
+        if ch == '1':
+            generate_bill()
+        elif ch == '2':
+            view_bills()
+        elif ch == '3':
+            break
+        else:
+            print("❌ Invalid choice! Please enter 1-3.")
+
+def main_menu():
+    while True:
+        print("\n" + "╔" + "═"*48 + "╗")
+        print("║" + "  MediTrack Hospital Management System  ".center(48) + "║")
+        print("║" + "  Python (File Handling) Project        ".center(48) + "║")
+        print("╚" + "═"*48 + "╝")
+        print("\n1. Patient Module")
+        print("2. Doctor Module")
+        print("3. Appointment Module")
+        print("4. Billing Module")
+        print("5. Exit System")
+        print("="*50)
+
+        ch = input("Enter your choice (1-5): ").strip()
+        if ch == '1':
+            patient_menu()
+        elif ch == '2':
+            doctor_menu()
+        elif ch == '3':
+            appointment_menu()
+        elif ch == '4':
+            billing_menu()
+        elif ch == '5':
+            print("\n" + "="*50)
+            print("✅ Thank you for using MediTrack HMS!")
+            print("   Exiting system...")
+            print("="*50)
+            break
+        else:
+            print("❌ Invalid choice! Please enter 1-5.")
+
+# ================== MAIN EXECUTION ==================
+
+if __name__ == "__main__":
+    main_menu()
